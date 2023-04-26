@@ -31,8 +31,19 @@ game[1,1][1] = 1
 # This will print out all strategy profile
 
 # p is a mixed strategy profile of ALL PLAYERS in the game
- 
+
 p = game.mixed_strategy_profile()
 print(list(p))
 print(p[game.players[0].strategies[0]]) # This will give the probability of player 0 playign stratey 0 under p.
 print(p.payoff(game.players[0])) # Expected payoff of player 0 under p.
+
+# If player 0 plays a certain strategy, and all others play according to p, then
+print(p.strategy_value(game.players[0].strategies[0])) # This will give the expected payoff of player 0 if he plays strategy 0 and all others play according to p.
+
+# import gambit
+# print(gambit)
+# print(game.table)
+# print(pygambit.nash)
+solver = pygambit.nash.ExternalEnumPureSolver()
+# # Solve for pure NEr
+print(solver.solve(game))
