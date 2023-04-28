@@ -43,7 +43,14 @@ class PotluckGame:
                 game[profile][player] = utility
 
         return game
+    def save(self, path):
+        """
+        Saves the game to a file.
 
+        Parameters:
+        path (str): The path to save the game to.
+        """
+        self.game.save_game(path)
 
 if __name__ == '__main__':
     game = PotluckGame(5)
@@ -54,5 +61,6 @@ if __name__ == '__main__':
     # The pure nash equilibria will just be whenever each player brings a unique dish (N!)
     nash = solver.solve(game.game)
 
+    game.save("potluck.efg")
 
     # print(nash[0].strategy)
