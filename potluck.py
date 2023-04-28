@@ -10,6 +10,7 @@ class PotluckGame:
         u: the common utility function that is used by all players, assumed to be monotonic in number of unique dishes.
         """
         self.numPlayers = numPlayers
+        self.numActions = numPlayers
         self.game = PotluckGame.potluck_game(numPlayers, u)
 
     @staticmethod
