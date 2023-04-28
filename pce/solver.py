@@ -1,5 +1,17 @@
+"""
+Suggestion:
+As the inital solve is often the bottleneck, maybe we can improve the performance by first restricting to the set
+of rationalizable strategies.
+
+Can also increase threads further and investigate presolve option.
+
+Also can try to use a different solver (e.g. PYGLPK) and see if that helps.
+"""
+
+
 import itertools
 import os
+import pickle
 import sys
 import io
 
@@ -14,13 +26,16 @@ import networkx as nx
 import contextlib
 import functools
 
+
 def suppress_output(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         with contextlib.redirect_stdout(io.StringIO()):
             result = func(*args, **kwargs)
         return result
+
     return wrapper
+
 
 class PotluckArgs(PrefixProto):
     """SolveArgs is a ParamsProto class that contains all the parameters
@@ -35,7 +50,16 @@ class PotluckArgs(PrefixProto):
 
 
 class PotluckSolver:
-    def __init__(self, gameWrapper, solver, network: nx.Graph = None, optVerbose = False, numThreads=8, presolve=False):
+    def __init__(
+        self,
+        gameWrapper,
+        solver,
+        network: nx.Graph = None,
+        optVerbose=False,
+        numThreads=8,
+        presolve=False,
+        writePath=None,
+    ):
         self.gameWrapper = gameWrapper
         self.game = gameWrapper.game
         self.solver = pl.getSolver(solver, msg=False, threads=numThreads)
@@ -46,7 +70,12 @@ class PotluckSolver:
             )
         )
         self.network = network
+
+        #TODO: Fix the problem with presolve version of pulp
         self.presolve = presolve
+
+        self.writePath = writePath
+
         assert self.network is not None, "Network cannot be None!"
 
     def consistentStrategies(self, profile, player, profilesToConsider):
@@ -62,6 +91,7 @@ class PotluckSolver:
                 consistent.add(tuple(opponents))
 
         return consistent
+
     @suppress_output
     def reduceProfiles(self, profilesToConsider):
         """
@@ -93,7 +123,8 @@ class PotluckSolver:
         for player i.
         """
         # Create the LP
-        prob = pl.LpProblem("best_response", pl.LpMaximize, presolve=self.presolve)
+        # prob = pl.LpProblem("best_response", pl.LpMaximize, presolve=self.presolve)
+        prob = pl.LpProblem("best_response", pl.LpMaximize)
 
         # Create the variables. Introduce one variable for each consistent strategy profile.
         variables = []
@@ -159,7 +190,6 @@ class PotluckSolver:
             print("====================================")
             print("Starting Step {}".format(step))
             previous_size = current_size
-            # with NoStdStreams():
             self.profiles = self.reduceProfiles(self.profiles)
             current_size = len(self.profiles)
             print("Reduced from {} to {} profiles".format(previous_size, current_size))
@@ -167,12 +197,23 @@ class PotluckSolver:
 
         print("Exited with {} profiles".format(current_size))
 
+        if self.writePath is not None:
+            # Save as a pickle file the gameWrapper object, network, and final profiles
+            print("Saving to {}".format(self.writePath))
+            try:
+                with open(self.writePath, "wb") as f:
+                    pickle.dump(
+                        (PotluckArgs, self.network, self.profiles), f,
+                    )
+                print("Saved 🎊🎉☀️⛱️🍉!")
+            except Exception as e:
+                print("Failed to save ⛈️ due to: {}".format(e))
         return self.profiles
 
 
 if __name__ == "__main__":
     # game = PotluckGame(5)
-    PotluckArgs.num_players = 5
+    PotluckArgs.num_players = 3
     PotluckArgs.u = lambda x: x
     G = nx.Graph()
 
@@ -180,22 +221,21 @@ if __name__ == "__main__":
     G.add_node(0)
     G.add_node(1)
     G.add_node(2)
-    G.add_node(3)
-    G.add_node(4)
+    # G.add_node(3)
+    # G.add_node(4)
 
     G.add_edge(0, 1)
     G.add_edge(1, 2)
     G.add_edge(2, 0)
-    G.add_edge(0, 3)
-    G.add_edge(1, 3)
-    G.add_edge(2, 3)
+    # G.add_edge(0, 3)
+    # G.add_edge(1, 3)
+    # G.add_edge(2, 3)
 
     # G.add_edge(3, 4)
 
-
     game = PotluckGame(PotluckArgs.num_players, PotluckArgs.u)
 
-    solver = PotluckSolver(game, "PULP_CBC_CMD", G, presolve=True)
+    solver = PotluckSolver(game, "PULP_CBC_CMD", G, writePath="results/test.pkl")
     # solver = PotluckSolver(game, "PYGLPK", G)
 
     out = solver.solve()
