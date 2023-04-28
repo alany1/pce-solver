@@ -1,7 +1,9 @@
 import itertools
 import os
 import sys
+import io
 
+from tqdm import tqdm
 from params_proto import Proto, ParamsProto, PrefixProto
 from potluck import PotluckGame
 import pulp as pl
@@ -9,25 +11,16 @@ import numpy as np
 import networkx as nx
 
 
-class NoStdStreams(object):
-    def __init__(self, stdout=None, stderr=None):
-        self.devnull = open(os.devnull, "w")
-        self._stdout = stdout or self.devnull or sys.stdout
-        self._stderr = stderr or self.devnull or sys.stderr
+import contextlib
+import functools
 
-    def __enter__(self):
-        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
-        self.old_stdout.flush()
-        self.old_stderr.flush()
-        sys.stdout, sys.stderr = self._stdout, self._stderr
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        self._stdout.flush()
-        self._stderr.flush()
-        sys.stdout = self.old_stdout
-        sys.stderr = self.old_stderr
-        self.devnull.close()
-
+def suppress_output(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = func(*args, **kwargs)
+        return result
+    return wrapper
 
 class PotluckArgs(PrefixProto):
     """SolveArgs is a ParamsProto class that contains all the parameters
@@ -42,10 +35,10 @@ class PotluckArgs(PrefixProto):
 
 
 class PotluckSolver:
-    def __init__(self, gameWrapper, solver, network: nx.Graph = None):
+    def __init__(self, gameWrapper, solver, network: nx.Graph = None, optVerbose = False, numThreads=8, presolve=False):
         self.gameWrapper = gameWrapper
         self.game = gameWrapper.game
-        self.solver = pl.getSolver(solver)
+        self.solver = pl.getSolver(solver, msg=False, threads=numThreads)
         self.model = pl.LpProblem("Potluck", pl.LpMaximize)
         self.profiles = list(
             itertools.product(
@@ -53,6 +46,7 @@ class PotluckSolver:
             )
         )
         self.network = network
+        self.presolve = presolve
         assert self.network is not None, "Network cannot be None!"
 
     def consistentStrategies(self, profile, player, profilesToConsider):
@@ -68,13 +62,13 @@ class PotluckSolver:
                 consistent.add(tuple(opponents))
 
         return consistent
-
+    @suppress_output
     def reduceProfiles(self, profilesToConsider):
         """
         Applies operator B_G.
         """
         reducedProfiles = []
-        for profile in profilesToConsider:
+        for profile in tqdm(profilesToConsider, desc="Reducing profiles"):
             # Check if for all players, is everyone playing a network-consistent best reply.
             clear = True
             for player in range(self.gameWrapper.numPlayers):
@@ -84,7 +78,7 @@ class PotluckSolver:
 
                 # Check if there is some viable conjecture (distribution over consistent) where profile_i is a B.R.
                 isBestResponse = self.checkBestResponse(profile, player, consistent)
-                print(f"Player {player} is a best response: {isBestResponse}")
+                # print(f"Player {player} is a best response: {isBestResponse}")
                 if not isBestResponse:
                     break
             else:
@@ -99,7 +93,7 @@ class PotluckSolver:
         for player i.
         """
         # Create the LP
-        prob = pl.LpProblem("Best Response", pl.LpMaximize)
+        prob = pl.LpProblem("best_response", pl.LpMaximize, presolve=self.presolve)
 
         # Create the variables. Introduce one variable for each consistent strategy profile.
         variables = []
@@ -159,12 +153,17 @@ class PotluckSolver:
         """ """
         previous_size = float("inf")
         current_size = len(self.profiles)
+        step = 0
         while previous_size - current_size > 0:
+            step += 1
+            print("====================================")
+            print("Starting Step {}".format(step))
             previous_size = current_size
             # with NoStdStreams():
             self.profiles = self.reduceProfiles(self.profiles)
             current_size = len(self.profiles)
             print("Reduced from {} to {} profiles".format(previous_size, current_size))
+            print("====================================")
 
         print("Exited with {} profiles".format(current_size))
 
@@ -184,13 +183,20 @@ if __name__ == "__main__":
     G.add_node(3)
     G.add_node(4)
 
-    # G.add_edge(0, 1)
+    G.add_edge(0, 1)
     G.add_edge(1, 2)
     G.add_edge(2, 0)
+    G.add_edge(0, 3)
+    G.add_edge(1, 3)
+    G.add_edge(2, 3)
+
+    # G.add_edge(3, 4)
+
 
     game = PotluckGame(PotluckArgs.num_players, PotluckArgs.u)
 
-    solver = PotluckSolver(game, "PULP_CBC_CMD", G)
+    solver = PotluckSolver(game, "PULP_CBC_CMD", G, presolve=True)
+    # solver = PotluckSolver(game, "PYGLPK", G)
 
     out = solver.solve()
     print(out)
