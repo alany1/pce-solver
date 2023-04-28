@@ -62,7 +62,7 @@ class PotluckSolver:
     ):
         self.gameWrapper = gameWrapper
         self.game = gameWrapper.game
-        self.solver = pl.getSolver(solver, msg=False, threads=numThreads)
+        self.solver = pl.getSolver(solver, msg=optVerbose, threads=numThreads)
         self.model = pl.LpProblem("Potluck", pl.LpMaximize)
         self.profiles = list(
             itertools.product(
