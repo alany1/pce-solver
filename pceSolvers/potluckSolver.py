@@ -213,7 +213,7 @@ class PotluckSolver:
 
 if __name__ == "__main__":
     # game = PotluckGame(5)
-    PotluckArgs.num_players = 3
+    PotluckArgs.num_players = 4
     PotluckArgs.u = lambda x: x
     G = nx.Graph()
 
@@ -221,8 +221,8 @@ if __name__ == "__main__":
     G.add_node(0)
     G.add_node(1)
     G.add_node(2)
-    # G.add_node(3)
-    # G.add_node(4)
+    G.add_node(3)
+    G.add_node(4)
 
     G.add_edge(0, 1)
     G.add_edge(1, 2)
