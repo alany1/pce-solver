@@ -6,6 +6,7 @@ from params_proto import PrefixProto
 from game import SimpleGame
 from pceSolvers.discreteSolver import DiscreteSolver
 
+
 class PotluckArgs(PrefixProto):
     """SolveArgs is a ParamsProto class that contains all the parameters
     needed for the solver.
@@ -19,17 +20,16 @@ class PotluckArgs(PrefixProto):
 
 
 class PotluckGame(SimpleGame):
-
     def __init__(self, numPlayers, u=lambda x: x):
         """
         Create a new potluck game with numPlayers players.
         u: the common utility function that is used by all players, assumed to be monotonic in number of unique dishes.
         """
         super().__init__(numPlayers, numPlayers, [u] * numPlayers)
-        self.game = PotluckGame.potluck_game(numPlayers, u)
+        self.game = PotluckGame.createGame(numPlayers, u)
 
     @staticmethod
-    def potluck_game(n, u):
+    def createGame(n, u):
         """
         Creates the potluck game using the gambit library.
 
@@ -60,22 +60,8 @@ class PotluckGame(SimpleGame):
 
         return game
 
-    def configureSolver(self, network, solverType="PULP_CBC_CMD", writePath="results/test.pkl"):
-        """
-        Configure the solver to be used for solving the game.
-        """
-        self.solver = DiscreteSolver(self, solverType, network, writePath=writePath)
-        print("Configured Solver!")
 
-    def solve(self):
-        """
-        Solve the game using the solver.
-        """
-        out = self.solver.solve()
-        print("Solved Game!")
-        return out
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     game = PotluckGame(2)
 
     # Compute pure nash equilibria

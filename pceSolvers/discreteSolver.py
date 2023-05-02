@@ -25,6 +25,7 @@ import networkx as nx
 import contextlib
 import functools
 
+
 class DiscreteSolver:
     def __init__(
         self,
@@ -47,7 +48,7 @@ class DiscreteSolver:
         )
         self.network = network
 
-        #TODO: Fix the problem with presolve version of pulp
+        # TODO: Fix the problem with presolve version of pulp
         self.presolve = presolve
 
         self.writePath = writePath
@@ -173,15 +174,18 @@ class DiscreteSolver:
             try:
                 with open(self.writePath, "wb") as f:
                     pickle.dump(
-                        (PotluckArgs, self.network, self.profiles), f,
+                        (PotluckArgs, self.network, self.profiles),
+                        f,
                     )
                 print("Saved 🎊🎉☀️⛱️🍉!")
             except Exception as e:
                 print("Failed to save ⛈️ due to: {}".format(e))
         return self.profiles
 
+
 if __name__ == "__main__":
     from potluck import PotluckGame, PotluckArgs
+
     # game = PotluckGame(5)
     PotluckArgs.num_players = 4
     PotluckArgs.u = lambda x: x
@@ -204,7 +208,6 @@ if __name__ == "__main__":
 
     game = PotluckGame(PotluckArgs.num_players, PotluckArgs.u)
     game.configureSolver(G, "PULP_CBC_CMD")
-    print(game.solve())
+    print(game.solvePCE())
     # solver = DiscreteSolver(game, "PULP_CBC_CMD", G, writePath="results/test.pkl")
     # solver = PotluckSolver(game, "PYGLPK", G)
-
