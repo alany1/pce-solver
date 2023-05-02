@@ -17,7 +17,6 @@ import io
 
 from tqdm import tqdm
 from params_proto import Proto, ParamsProto, PrefixProto
-from potluck import PotluckGame
 import pulp as pl
 import numpy as np
 import networkx as nx
@@ -26,30 +25,7 @@ import networkx as nx
 import contextlib
 import functools
 
-
-def suppress_output(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        with contextlib.redirect_stdout(io.StringIO()):
-            result = func(*args, **kwargs)
-        return result
-
-    return wrapper
-
-
-class PotluckArgs(PrefixProto):
-    """SolveArgs is a ParamsProto class that contains all the parameters
-    needed for the solver.
-    """
-
-    num_players: int = 5
-
-    # Fix this to use eval
-    u = lambda x: x
-    graph = None
-
-
-class PotluckSolver:
+class DiscreteSolver:
     def __init__(
         self,
         gameWrapper,
@@ -63,7 +39,7 @@ class PotluckSolver:
         self.gameWrapper = gameWrapper
         self.game = gameWrapper.game
         self.solver = pl.getSolver(solver, msg=optVerbose, threads=numThreads)
-        self.model = pl.LpProblem("Potluck", pl.LpMaximize)
+        self.model = pl.LpProblem("Game", pl.LpMaximize)
         self.profiles = list(
             itertools.product(
                 range(self.gameWrapper.numActions), repeat=self.gameWrapper.numPlayers
@@ -92,7 +68,6 @@ class PotluckSolver:
 
         return consistent
 
-    @suppress_output
     def reduceProfiles(self, profilesToConsider):
         """
         Applies operator B_G.
@@ -152,11 +127,6 @@ class PotluckSolver:
             for j in range(len(variables))
         )
 
-        # action_utility = sum(
-        #     variables[j] * self.game[profile[:player] + (profile[player],) + profile[player + 1:]][player]
-        #     for j in
-        #     range(len(variables)))
-
         for action in range(self.gameWrapper.numActions):
             prob += (
                 sum(
@@ -210,8 +180,8 @@ class PotluckSolver:
                 print("Failed to save ⛈️ due to: {}".format(e))
         return self.profiles
 
-
 if __name__ == "__main__":
+    from potluck import PotluckGame, PotluckArgs
     # game = PotluckGame(5)
     PotluckArgs.num_players = 4
     PotluckArgs.u = lambda x: x
@@ -222,21 +192,19 @@ if __name__ == "__main__":
     G.add_node(1)
     G.add_node(2)
     G.add_node(3)
-    G.add_node(4)
 
     G.add_edge(0, 1)
     G.add_edge(1, 2)
     G.add_edge(2, 0)
-    # G.add_edge(0, 3)
-    # G.add_edge(1, 3)
-    # G.add_edge(2, 3)
+    G.add_edge(0, 3)
+    G.add_edge(1, 3)
+    G.add_edge(2, 3)
 
     # G.add_edge(3, 4)
 
     game = PotluckGame(PotluckArgs.num_players, PotluckArgs.u)
-
-    solver = PotluckSolver(game, "PULP_CBC_CMD", G, writePath="results/test.pkl")
+    game.configureSolver(G, "PULP_CBC_CMD")
+    print(game.solve())
+    # solver = DiscreteSolver(game, "PULP_CBC_CMD", G, writePath="results/test.pkl")
     # solver = PotluckSolver(game, "PYGLPK", G)
 
-    out = solver.solve()
-    print(out)

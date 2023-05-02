@@ -1,16 +1,31 @@
 import pygambit
 import itertools
 import numpy as np
+from params_proto import PrefixProto
 
-class PotluckGame:
+from game import SimpleGame
+from pceSolvers.discreteSolver import DiscreteSolver
 
-    def __init__(self, numPlayers, u = lambda x:x):
+class PotluckArgs(PrefixProto):
+    """SolveArgs is a ParamsProto class that contains all the parameters
+    needed for the solver.
+    """
+
+    num_players: int = 5
+
+    # Fix this to use eval
+    u = lambda x: x
+    graph = None
+
+
+class PotluckGame(SimpleGame):
+
+    def __init__(self, numPlayers, u=lambda x: x):
         """
         Create a new potluck game with numPlayers players.
         u: the common utility function that is used by all players, assumed to be monotonic in number of unique dishes.
         """
-        self.numPlayers = numPlayers
-        self.numActions = numPlayers
+        super().__init__(numPlayers, numPlayers, [u] * numPlayers)
         self.game = PotluckGame.potluck_game(numPlayers, u)
 
     @staticmethod
@@ -44,24 +59,28 @@ class PotluckGame:
                 game[profile][player] = utility
 
         return game
-    def save(self, path):
-        """
-        Saves the game to a file.
 
-        Parameters:
-        path (str): The path to save the game to.
+    def configureSolver(self, network, solverType="PULP_CBC_CMD", writePath="results/test.pkl"):
         """
-        self.game.save_game(path)
+        Configure the solver to be used for solving the game.
+        """
+        self.solver = DiscreteSolver(self, solverType, network, writePath=writePath)
+        print("Configured Solver!")
+
+    def solve(self):
+        """
+        Solve the game using the solver.
+        """
+        out = self.solver.solve()
+        print("Solved Game!")
+        return out
 
 if __name__ == '__main__':
-    game = PotluckGame(5)
+    game = PotluckGame(2)
 
     # Compute pure nash equilibria
     solver = pygambit.nash.ExternalEnumPureSolver()
 
     # The pure nash equilibria will just be whenever each player brings a unique dish (N!)
     nash = solver.solve(game.game)
-
-    game.save("potluck.efg")
-
-    # print(nash[0].strategy)
+    print(nash)
