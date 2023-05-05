@@ -1,5 +1,4 @@
 import pickle
-
 import networkx as nx
 import pygambit
 import itertools
@@ -22,6 +21,7 @@ class TrafficGame(SimpleGame):
         super().__init__(numPlayers, numRoads, [u] * numPlayers)
         self.game = self.createGame()
         self.verbose = verbose
+
     def createGame(self):
         """
         Create a new traffic game with numPlayers players and numRoads roads.
@@ -47,6 +47,7 @@ class TrafficGame(SimpleGame):
 
         return game
 
+
 def numUniqueRoads(profiles):
     """
     Get the minimum number of unique roads taken by all players in any profile as well as how many
@@ -57,18 +58,21 @@ def numUniqueRoads(profiles):
     for profile in profiles:
         min_unique_roads = min(min_unique_roads, len(set(profile)))
 
-    return min_unique_roads, [profile for profile in profiles if len(set(profile)) == min_unique_roads]
+    return min_unique_roads, [
+        profile for profile in profiles if len(set(profile)) == min_unique_roads
+    ]
 
-def analyzeGame(maxN):
+
+def analyzeGame(minN, maxN):
     """
     Examine all gamma-regular graphs with up to maxN nodes and find the number of unique roads taken by all players.
     """
     results = {}
-    for n in range(1, maxN+1):
-        for k in range(1, n+1):
+    for n in range(minN, maxN + 1):
+        for k in range(0, n + 1):
             game = TrafficGame(n, k, verbose=True)
 
-            for gamma in range(1, n+1):
+            for gamma in range(1, n + 1):
                 # Play this game on all of these graphs; count the number of unique roads taken by all players and we
                 # want to get the minimum.
 
@@ -80,9 +84,16 @@ def analyzeGame(maxN):
                 showg_cmd = "showg -e"
 
                 # Run the geng and showg commands and get the output
-                geng_output = subprocess.run(geng_cmd, stdout=subprocess.PIPE, shell=True, text=True)
-                edge_list_output = subprocess.run(showg_cmd, input=geng_output.stdout, stdout=subprocess.PIPE,
-                                                  shell=True, text=True)
+                geng_output = subprocess.run(
+                    geng_cmd, stdout=subprocess.PIPE, shell=True, text=True
+                )
+                edge_list_output = subprocess.run(
+                    showg_cmd,
+                    input=geng_output.stdout,
+                    stdout=subprocess.PIPE,
+                    shell=True,
+                    text=True,
+                )
 
                 # Split the output into individual edge lists
                 edge_lists = edge_list_output.stdout.strip().split("\n\n")
@@ -95,8 +106,13 @@ def analyzeGame(maxN):
                     all_graphs.append(G)
 
                 mins = []
-                for graph in tqdm(all_graphs, desc=f"Solving gamma-complete graphs for n={n}, k={k}, gamma={gamma}"):
-                    game.configureSolver(graph, "PULP_CBC_CMD", writePath=None) # "results/traffic.pkl")
+                for graph in tqdm(
+                    all_graphs,
+                    desc=f"Solving gamma-complete graphs for n={n}, k={k}, gamma={gamma}",
+                ):
+                    game.configureSolver(
+                        graph, "PULP_CBC_CMD", writePath=None
+                    )  # "results/traffic.pkl")
                     unique, _ = numUniqueRoads(game.solvePCE())
                     mins.append(unique)
 
@@ -107,18 +123,18 @@ def analyzeGame(maxN):
                 # since f is monotonically increasing in gamma
 
                 # Save the results
-                print("Saving results to results/traffic_regular_analysis.pkl")
-                with open("results/traffic_regular_analysis.pkl", "wb") as f:
+                print("Saving results to results/traffic_regular_analysis_2.pkl")
+                with open("results/traffic_regular_analysis_2.pkl", "wb") as f:
                     pickle.dump(results, f)
 
                 if mins[idx] == k:
-                    print(f"Stopping early since we have found gamma={gamma} such that f(gamma)=k={k}")
+                    print(
+                        f"Stopping early since we have found gamma={gamma} such that f(gamma)=k={k}"
+                    )
                     break
             print(f"Finished analyzing n={n}, k={k}")
         print(f"Finished analyzing n={n}")
     print("Done analyzing all games! Saved to results/traffic_regular_analysis.pkl! 🍾")
-
-
 
 
 def parse_edge_list(edge_list):
@@ -135,10 +151,21 @@ def parse_edge_list(edge_list):
 
     return edges
 
+
 if __name__ == "__main__":
     from potluck import PotluckGame
-    analyzeGame(9)
+
+    analyzeGame(7, 9)
     # traffic = TrafficGame(9, 2)
+
+    import pickle
+
+    with open("results/traffic_regular_analysis.pkl", "rb") as f:
+        results = pickle.load(f)
+
+    for key, (value, graph) in results.items():
+        print(key, value)
+
     # # potluck = PotluckGame(3)
     #
     # G = nx.Graph()

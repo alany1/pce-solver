@@ -23,7 +23,9 @@ class SimpleGame:
         """
         Configure the solver to be used for solving the game.
         """
-        self.solver = DiscreteSolver(self, solverType, network, verbose=self.verbose, writePath=writePath)
+        self.solver = DiscreteSolver(
+            self, solverType, network, verbose=self.verbose, writePath=writePath
+        )
         print("Configured Solver!")
 
     def solvePCE(self):

@@ -76,7 +76,9 @@ class DiscreteSolver:
         Applies operator B_G.
         """
         reducedProfiles = []
-        for profile in tqdm(profilesToConsider, desc="Reducing profiles", disable=not self.verbose):
+        for profile in tqdm(
+            profilesToConsider, desc="Reducing profiles", disable=not self.verbose
+        ):
             # Check if for all players, is everyone playing a network-consistent best reply.
             clear = True
             for player in range(self.gameWrapper.numPlayers):
@@ -167,7 +169,9 @@ class DiscreteSolver:
             self.profiles = self.reduceProfiles(self.profiles)
             current_size = len(self.profiles)
             if self.verbose:
-                print("Reduced from {} to {} profiles".format(previous_size, current_size))
+                print(
+                    "Reduced from {} to {} profiles".format(previous_size, current_size)
+                )
                 print("====================================")
         if self.verbose:
             print("Exited with {} profiles".format(current_size))
