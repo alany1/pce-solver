@@ -1,7 +1,12 @@
+import pickle
+
 import networkx as nx
 import pygambit
 import itertools
 import numpy as np
+import subprocess
+
+from tqdm import tqdm
 
 from game import SimpleGame
 
@@ -54,115 +59,184 @@ def numUniqueRoads(profiles):
 
     return min_unique_roads, [profile for profile in profiles if len(set(profile)) == min_unique_roads]
 
+def analyzeGame(maxN):
+    """
+    Examine all gamma-regular graphs with up to maxN nodes and find the number of unique roads taken by all players.
+    """
+    results = {}
+    for n in range(1, maxN+1):
+        for k in range(1, n+1):
+            game = TrafficGame(n, k)
+
+            for gamma in range(1, n+1):
+                # Play this game on all of these graphs; count the number of unique roads taken by all players and we
+                # want to get the minimum.
+
+                # Look through all gamma-regular graphs with n nodes
+                # n = 6
+                # gamma = 3
+
+                geng_cmd = f"geng -r -d{gamma} -D{gamma} {n}"
+                showg_cmd = "showg -e"
+
+                # Run the geng and showg commands and get the output
+                geng_output = subprocess.run(geng_cmd, stdout=subprocess.PIPE, shell=True, text=True)
+                edge_list_output = subprocess.run(showg_cmd, input=geng_output.stdout, stdout=subprocess.PIPE,
+                                                  shell=True, text=True)
+
+                # Split the output into individual edge lists
+                edge_lists = edge_list_output.stdout.strip().split("\n\n")
+
+                all_graphs = []
+                for edge_list in edge_lists:
+                    G = nx.Graph()
+                    G.add_nodes_from(range(n))
+                    G.add_edges_from(parse_edge_list(edge_list))
+                    all_graphs.append(G)
+
+                mins = []
+                for graph in tqdm(all_graphs, desc=f"Solving gamma-complete graphs for n={n}, k={k}, gamma={gamma}"):
+                    game.configureSolver(graph, "PULP_CBC_CMD", writePath="results/traffic.pkl")
+                    unique, _ = numUniqueRoads(game.solvePCE())
+                    mins.append(unique)
+
+                idx = np.argmin(np.array(mins))
+                results[(n, k, gamma)] = mins[idx], all_graphs[idx]
+
+                # if the value is equal to k, then we are done with this value of gamma
+                # since f is monotonically increasing in gamma
+
+                # Save the results
+                with open("results/traffic_regular_analysis.pkl", "wb") as f:
+                    pickle.dump(results, f)
+
+                if mins[idx] == k:
+                    print(f"Stopping early since we have found gamma={gamma} such that f(gamma)=k={k}")
+                    break
+            print(f"Finished analyzing n={n}, k={k}")
+        print(f"Finished analyzing n={n}")
+    print("Done analyzing all games! Saved to results/traffic_regular_analysis.pkl! 🍾")
+
+
+
+
+def parse_edge_list(edge_list):
+    edges = []
+    for line in edge_list.split("\n"):
+        if line:
+            u, v = map(int, line.split())
+            edges.append((u, v))
+    return edges
+
 if __name__ == "__main__":
     from potluck import PotluckGame
-
-    traffic = TrafficGame(9, 2)
-    # potluck = PotluckGame(3)
-
-    G = nx.Graph()
-
-    # G empty
-    G.add_node(0)
-    G.add_node(1)
-    G.add_node(2)
-    G.add_node(3)
-    G.add_node(4)
-    G.add_node(5)
-
-    G.add_node(6)
-    G.add_node(7)
-    G.add_node(8)
-
-
-    # Fully Connected
-
-    # ====== 5 nodes ======
-    # G.add_edge(0, 1)
-    # G.add_edge(0, 2)
-    # G.add_edge(0, 3)
-    # G.add_edge(0, 4)
+    analyzeGame(5)
+    # traffic = TrafficGame(9, 2)
+    # # potluck = PotluckGame(3)
     #
-    # G.add_edge(1, 2)
-    # G.add_edge(1, 3)
-    # G.add_edge(1, 4)
+    # G = nx.Graph()
     #
-    # G.add_edge(2, 3)
-    # G.add_edge(2, 4)
+    # # G empty
+    # G.add_node(0)
+    # G.add_node(1)
+    # G.add_node(2)
+    # G.add_node(3)
+    # G.add_node(4)
+    # G.add_node(5)
+    #
+    # G.add_node(6)
+    # G.add_node(7)
+    # G.add_node(8)
+    #
+    #
+    # # Fully Connected
+    #
+    # # ====== 5 nodes ======
+    # # G.add_edge(0, 1)
+    # # G.add_edge(0, 2)
+    # # G.add_edge(0, 3)
+    # # G.add_edge(0, 4)
     # #
-    # G.add_edge(3, 4)
-    # ====================
-
-    # ====== 6 nodes ======
+    # # G.add_edge(1, 2)
+    # # G.add_edge(1, 3)
+    # # G.add_edge(1, 4)
+    # #
+    # # G.add_edge(2, 3)
+    # # G.add_edge(2, 4)
+    # # #
+    # # G.add_edge(3, 4)
+    # # ====================
+    #
+    # # ====== 6 nodes ======
+    # # G.add_edge(0, 1)
+    # # G.add_edge(0, 2)
+    # # G.add_edge(0, 3)
+    # # G.add_edge(0, 4)
+    # # G.add_edge(0, 5)
+    # #
+    # # G.add_edge(1, 2)
+    # # G.add_edge(1, 3)
+    # # G.add_edge(1, 4)
+    # # G.add_edge(1, 5)
+    # #
+    # # G.add_edge(2, 3)
+    # # G.add_edge(2, 4)
+    # # G.add_edge(2, 5)
+    #
+    # # G.add_edge(3, 4)
+    # # G.add_edge(3, 5)
+    #
+    # # G.add_edge(4, 5)
+    #
+    # # ====================
+    #
+    # # ====== 8 nodes ======
     # G.add_edge(0, 1)
     # G.add_edge(0, 2)
     # G.add_edge(0, 3)
     # G.add_edge(0, 4)
     # G.add_edge(0, 5)
+    # G.add_edge(0, 6)
+    # G.add_edge(0, 7)
+    # G.add_edge(0, 8)
     #
     # G.add_edge(1, 2)
     # G.add_edge(1, 3)
     # G.add_edge(1, 4)
     # G.add_edge(1, 5)
+    # G.add_edge(1, 6)
+    # G.add_edge(1, 7)
+    # G.add_edge(1, 8)
     #
     # G.add_edge(2, 3)
     # G.add_edge(2, 4)
     # G.add_edge(2, 5)
-
-    # G.add_edge(3, 4)
-    # G.add_edge(3, 5)
-
-    # G.add_edge(4, 5)
-
-    # ====================
-
-    # ====== 8 nodes ======
-    G.add_edge(0, 1)
-    G.add_edge(0, 2)
-    G.add_edge(0, 3)
-    G.add_edge(0, 4)
-    G.add_edge(0, 5)
-    G.add_edge(0, 6)
-    G.add_edge(0, 7)
-    G.add_edge(0, 8)
-
-    G.add_edge(1, 2)
-    G.add_edge(1, 3)
-    G.add_edge(1, 4)
-    G.add_edge(1, 5)
-    G.add_edge(1, 6)
-    G.add_edge(1, 7)
-    G.add_edge(1, 8)
-
-    G.add_edge(2, 3)
-    G.add_edge(2, 4)
-    G.add_edge(2, 5)
-    G.add_edge(2, 6)
-    G.add_edge(2, 7)
-    G.add_edge(2, 8)
-
-    # G.add_edge(3, 4)
-    # G.add_edge(3, 5)
-    # G.add_edge(3, 6)
-
-    # G.add_edge(4, 5)
-    # G.add_edge(4, 6)
-
-    # G.add_edge(5, 6)
-
-    # ====================
-
-    traffic.configureSolver(G, "PULP_CBC_CMD", writePath="results/traffic.pkl")
-    pce = traffic.solvePCE()
-
-    # Find the one with the most number of ones
-    print(max(pce, key=lambda x: sum(x)))
-
-    print("Number of unique roads used", numUniqueRoads(pce))
-
-    # potluck.configureSolver(G, "PULP_CBC_CMD", writePath="results/potluck.pkl")
-    # print(len(potluck.solvePCE()))
-
-    print("Eigenvector Centrality", nx.eigenvector_centrality(G))
-    nash = traffic.solveNash()
-    print(len(nash))
+    # G.add_edge(2, 6)
+    # G.add_edge(2, 7)
+    # G.add_edge(2, 8)
+    #
+    # # G.add_edge(3, 4)
+    # # G.add_edge(3, 5)
+    # # G.add_edge(3, 6)
+    #
+    # # G.add_edge(4, 5)
+    # # G.add_edge(4, 6)
+    #
+    # # G.add_edge(5, 6)
+    #
+    # # ====================
+    #
+    # traffic.configureSolver(G, "PULP_CBC_CMD", writePath="results/traffic.pkl")
+    # pce = traffic.solvePCE()
+    #
+    # # Find the one with the most number of ones
+    # print(max(pce, key=lambda x: sum(x)))
+    #
+    # print("Number of unique roads used", numUniqueRoads(pce))
+    #
+    # # potluck.configureSolver(G, "PULP_CBC_CMD", writePath="results/potluck.pkl")
+    # # print(len(potluck.solvePCE()))
+    #
+    # print("Eigenvector Centrality", nx.eigenvector_centrality(G))
+    # nash = traffic.solveNash()
+    # print(len(nash))
