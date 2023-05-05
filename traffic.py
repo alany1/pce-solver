@@ -12,7 +12,7 @@ from game import SimpleGame
 
 
 class TrafficGame(SimpleGame):
-    def __init__(self, numPlayers, numRoads, u=lambda x: -x):
+    def __init__(self, numPlayers, numRoads, verbose=False, u=lambda x: -x):
         """
         Create a new traffic game with numPlayers players and numRoads roads.
         u: the common utility function that is used by all players, assumed to be monotonic decreasing in number of
@@ -21,7 +21,7 @@ class TrafficGame(SimpleGame):
         # super().__init__(numPlayers, numRoads, [u] * (numPlayers-1) + [lambda x: -u(x)])
         super().__init__(numPlayers, numRoads, [u] * numPlayers)
         self.game = self.createGame()
-
+        self.verbose = verbose
     def createGame(self):
         """
         Create a new traffic game with numPlayers players and numRoads roads.
@@ -29,7 +29,7 @@ class TrafficGame(SimpleGame):
 
         game = pygambit.Game.new_table([self.numActions] * self.numPlayers)
 
-        game.title = "Traffic_Game"
+        game.title = "trafficGame"
 
         # Iterate through all strategy profiles to set rewards (without using game.contingencies)
         for profile in itertools.product(
@@ -66,7 +66,7 @@ def analyzeGame(maxN):
     results = {}
     for n in range(1, maxN+1):
         for k in range(1, n+1):
-            game = TrafficGame(n, k)
+            game = TrafficGame(n, k, verbose=True)
 
             for gamma in range(1, n+1):
                 # Play this game on all of these graphs; count the number of unique roads taken by all players and we
@@ -76,7 +76,7 @@ def analyzeGame(maxN):
                 # n = 6
                 # gamma = 3
 
-                geng_cmd = f"geng -r -d{gamma} -D{gamma} {n}"
+                geng_cmd = f"geng -c -d{gamma} -D{gamma} {n}"
                 showg_cmd = "showg -e"
 
                 # Run the geng and showg commands and get the output
@@ -96,7 +96,7 @@ def analyzeGame(maxN):
 
                 mins = []
                 for graph in tqdm(all_graphs, desc=f"Solving gamma-complete graphs for n={n}, k={k}, gamma={gamma}"):
-                    game.configureSolver(graph, "PULP_CBC_CMD", writePath="results/traffic.pkl")
+                    game.configureSolver(graph, "PULP_CBC_CMD", writePath=None) # "results/traffic.pkl")
                     unique, _ = numUniqueRoads(game.solvePCE())
                     mins.append(unique)
 
@@ -107,6 +107,7 @@ def analyzeGame(maxN):
                 # since f is monotonically increasing in gamma
 
                 # Save the results
+                print("Saving results to results/traffic_regular_analysis.pkl")
                 with open("results/traffic_regular_analysis.pkl", "wb") as f:
                     pickle.dump(results, f)
 
@@ -121,16 +122,22 @@ def analyzeGame(maxN):
 
 
 def parse_edge_list(edge_list):
+    lines = edge_list.split("\n")
+    if len(lines) < 3:
+        return []
+
+    edges_line = lines[2]
+    edge_pairs = edges_line.split("  ")  # Split with two spaces
     edges = []
-    for line in edge_list.split("\n"):
-        if line:
-            u, v = map(int, line.split())
-            edges.append((u, v))
+    for edge_pair in edge_pairs:
+        u, v = map(int, edge_pair.split())
+        edges.append((u, v))
+
     return edges
 
 if __name__ == "__main__":
     from potluck import PotluckGame
-    analyzeGame(5)
+    analyzeGame(9)
     # traffic = TrafficGame(9, 2)
     # # potluck = PotluckGame(3)
     #
@@ -147,7 +154,7 @@ if __name__ == "__main__":
     # G.add_node(6)
     # G.add_node(7)
     # G.add_node(8)
-    #
+    # #
     #
     # # Fully Connected
     #

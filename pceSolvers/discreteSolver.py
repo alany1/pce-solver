@@ -32,6 +32,7 @@ class DiscreteSolver:
         gameWrapper,
         solver,
         network: nx.Graph = None,
+        verbose=False,
         optVerbose=False,
         numThreads=8,
         presolve=False,
@@ -48,6 +49,7 @@ class DiscreteSolver:
         )
         self.network = network
 
+        self.verbose = verbose
         # TODO: Fix the problem with presolve version of pulp
         self.presolve = presolve
 
@@ -74,7 +76,7 @@ class DiscreteSolver:
         Applies operator B_G.
         """
         reducedProfiles = []
-        for profile in tqdm(profilesToConsider, desc="Reducing profiles"):
+        for profile in tqdm(profilesToConsider, desc="Reducing profiles", disable=not self.verbose):
             # Check if for all players, is everyone playing a network-consistent best reply.
             clear = True
             for player in range(self.gameWrapper.numPlayers):
@@ -158,26 +160,30 @@ class DiscreteSolver:
         step = 0
         while previous_size - current_size > 0:
             step += 1
-            print("====================================")
-            print("Starting Step {}".format(step))
+            if self.verbose:
+                print("====================================")
+                print("Starting Step {}".format(step))
             previous_size = current_size
             self.profiles = self.reduceProfiles(self.profiles)
             current_size = len(self.profiles)
-            print("Reduced from {} to {} profiles".format(previous_size, current_size))
-            print("====================================")
-
-        print("Exited with {} profiles".format(current_size))
+            if self.verbose:
+                print("Reduced from {} to {} profiles".format(previous_size, current_size))
+                print("====================================")
+        if self.verbose:
+            print("Exited with {} profiles".format(current_size))
 
         if self.writePath is not None:
             # Save as a pickle file the gameWrapper object, network, and final profiles
-            print("Saving to {}".format(self.writePath))
+            if self.verbose:
+                print("Saving to {}".format(self.writePath))
             try:
                 with open(self.writePath, "wb") as f:
                     pickle.dump(
                         (PotluckArgs, self.network, self.profiles),
                         f,
                     )
-                print("Saved 🎊🎉☀️⛱️🍉!")
+                if self.verbose:
+                    print("Saved 🎊🎉☀️⛱️🍉!")
             except Exception as e:
                 print("Failed to save ⛈️ due to: {}".format(e))
         return self.profiles
