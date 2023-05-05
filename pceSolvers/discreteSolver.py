@@ -183,7 +183,7 @@ class DiscreteSolver:
             try:
                 with open(self.writePath, "wb") as f:
                     pickle.dump(
-                        (PotluckArgs, self.network, self.profiles),
+                        (self.gameWrapper.numPlayers, self.gameWrapper.numActions, self.network, self.profiles),
                         f,
                     )
                 if self.verbose:
