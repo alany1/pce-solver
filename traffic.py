@@ -69,7 +69,7 @@ def analyzeGame(minN, maxN):
     """
     results = {}
     for n in range(minN, maxN + 1):
-        for k in range(0, n + 1):
+        for k in range(1, n + 1):
             game = TrafficGame(n, k, verbose=True)
 
             for gamma in range(1, n + 1):
@@ -155,7 +155,7 @@ def parse_edge_list(edge_list):
 if __name__ == "__main__":
     from potluck import PotluckGame
 
-    analyzeGame(7, 9)
+    analyzeGame(2, 9)
     # traffic = TrafficGame(9, 2)
 
     import pickle

@@ -52,7 +52,7 @@ class SimpleMajorityGame(SimpleGame):
 
         return game
 
-def analyze(n, gamma, game):
+def analyze(n, gamma, game, early_stop=True):
     """
     Examine all gamma-regular graphs with n nodes and determine if there exists a PCE with
     an even split among players.
@@ -90,6 +90,7 @@ def analyze(n, gamma, game):
         G.add_edges_from(parse_edge_list(edge_list))
         all_graphs.append(G)
 
+    history = []
     for graph in tqdm(
             all_graphs,
             desc=f"Solving gamma-complete graphs for n={n}, gamma={gamma}",
@@ -104,8 +105,11 @@ def analyze(n, gamma, game):
         # smallest = min(pce, key=lambda x: sum(x))
         if any(count_ones):
             print("Found a graph with an even split!")
-            return pce[found], graph
-
+            if early_stop:
+                return pce[found], graph
+            history.append((pce[found], graph))
+    if not early_stop:
+        return history
     return None,None
 
 def searchGraphs(n, majorityGame):
@@ -141,9 +145,9 @@ def searchGraphs(n, majorityGame):
 
 if __name__ == "__main__":
 
-    n = 7
-
+    n = 9
     majorityGame = SimpleMajorityGame(n, 2, verbose=True)
+    analyze(n, 6, majorityGame, early_stop=False)
 
     try:
         with open(f"results/majority_{n}.pkl", "rb") as f:
