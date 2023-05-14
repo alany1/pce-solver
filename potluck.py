@@ -1,10 +1,13 @@
 import pygambit
 import itertools
 import numpy as np
+from matplotlib import pyplot as plt
 from params_proto import PrefixProto
 
 from game import SimpleGame
 from pceSolvers.discreteSolver import DiscreteSolver
+
+import networkx as nx
 
 
 class PotluckArgs(PrefixProto):
@@ -20,14 +23,14 @@ class PotluckArgs(PrefixProto):
 
 
 class PotluckGame(SimpleGame):
-    def __init__(self, numPlayers, u=lambda x: x):
+    def __init__(self, numPlayers, verbose=False, u=lambda x: x):
         """
         Create a new potluck game with numPlayers players.
         u: the common utility function that is used by all players, assumed to be monotonic in number of unique dishes.
         """
         super().__init__(numPlayers, numPlayers, [u] * numPlayers)
         self.game = PotluckGame.createGame(numPlayers, u)
-
+        self.verbose = verbose
     @staticmethod
     def createGame(n, u):
         """
@@ -62,11 +65,26 @@ class PotluckGame(SimpleGame):
 
 
 if __name__ == "__main__":
-    game = PotluckGame(2)
+    # game = PotluckGame(2)
 
-    # Compute pure nash equilibria
-    solver = pygambit.nash.ExternalEnumPureSolver()
+    # # Compute pure nash equilibria
+    # solver = pygambit.nash.ExternalEnumPureSolver()
+    #
+    # # The pure nash equilibria will just be whenever each player brings a unique dish (N!)
+    # nash = solver.solve(game.game)
+    # print(nash)
 
-    # The pure nash equilibria will just be whenever each player brings a unique dish (N!)
-    nash = solver.solve(game.game)
-    print(nash)
+    # Generate some graphs and look at the computed PCE
+    print('hey')
+    n=4
+    p=.5
+    game = PotluckGame(n, verbose=True)
+    for i in range(4):
+        print(i)
+        random_graph = nx.gnp_random_graph(n, p)
+        print("done generating graph")
+        game.configureSolver(random_graph)
+        pce = game.solvePCE()
+        print(pce)
+        nx.draw(random_graph, with_labels=True)
+        plt.show()

@@ -124,7 +124,7 @@ def analyzeGame(minN, maxN):
 
                 # Save the results
                 print("Saving results to results/traffic_regular_analysis_2.pkl")
-                with open("results/traffic_regular_analysis_2.pkl", "wb") as f:
+                with open("results/traffic_regular_analysis_pt2.pkl", "wb") as f:
                     pickle.dump(results, f)
 
                 if mins[idx] == k:
@@ -155,7 +155,7 @@ def parse_edge_list(edge_list):
 if __name__ == "__main__":
     from potluck import PotluckGame
 
-    analyzeGame(2, 9)
+    analyzeGame(7, 9)
     # traffic = TrafficGame(9, 2)
 
     import pickle
