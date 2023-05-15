@@ -141,36 +141,63 @@ def searchGraphs(n, majorityGame):
             badGraphs.append(graph)
     return goodGraphs, badGraphs
 
+def simulateRandomGraphs(num_trials, n, p):
+    """
+    Simulate random graphs with n nodes and edge probability p and compute PCE sets on them.
+    We compute the probability that a PCE set contains a profile where n/2 players take each action.
+    """
+    majorityGame = SimpleMajorityGame(n, 2)
+    goodGraphs = []
+    badGraphs = []
+    for i in tqdm(range(num_trials), desc="Simulating random graphs", colour="green"):
+        graph = nx.gnp_random_graph(n, p)
+        majorityGame.configureSolver(graph, "PULP_CBC_CMD", writePath="results/Majority.pkl")
+        pce = majorityGame.solvePCE()
+
+        for profile in pce:
+            count_ones = sum(profile)
+            if count_ones == n//2 or len(profile)-count_ones == n//2:
+                goodGraphs.append(graph)
+                print("Found graph with n/2 players taking each action")
+                break
+        else:
+            badGraphs.append(graph)
+
+    p = len(goodGraphs)/num_trials
+
+    return p, goodGraphs, badGraphs
 
 
 if __name__ == "__main__":
 
-    n = 9
-    majorityGame = SimpleMajorityGame(n, 2, verbose=True)
-    analyze(n, 6, majorityGame, early_stop=False)
+    print(simulateRandomGraphs(100, 5, 0.25))
 
-    try:
-        with open(f"results/majority_{n}.pkl", "rb") as f:
-            results = pickle.load(f)
-    except FileNotFoundError:
-        print("File not found, analyzing graphs")
-        results = {}
-        for gamma in range(n):
-            print(f"Analyzing gamma={gamma}")
-            results[gamma] = analyze(n, gamma, majorityGame)
-
-        # Save results
-        with open(f"results/majority_{n}.pkl", "wb") as f:
-            pickle.dump(results, f)
-
-    print(results)
-
-    # Draw the graphs
-    for gamma, (pce, graph) in results.items():
-        if pce is not None:
-            nx.draw(graph, with_labels=True)
-            plt.title(f"Gamma={gamma}")
-            plt.show()
+    # n = 9
+    # majorityGame = SimpleMajorityGame(n, 2, verbose=True)
+    # analyze(n, 6, majorityGame, early_stop=False)
+    #
+    # try:
+    #     with open(f"results/majority_{n}.pkl", "rb") as f:
+    #         results = pickle.load(f)
+    # except FileNotFoundError:
+    #     print("File not found, analyzing graphs")
+    #     results = {}
+    #     for gamma in range(n):
+    #         print(f"Analyzing gamma={gamma}")
+    #         results[gamma] = analyze(n, gamma, majorityGame)
+    #
+    #     # Save results
+    #     with open(f"results/majority_{n}.pkl", "wb") as f:
+    #         pickle.dump(results, f)
+    #
+    # print(results)
+    #
+    # # Draw the graphs
+    # for gamma, (pce, graph) in results.items():
+    #     if pce is not None:
+    #         nx.draw(graph, with_labels=True)
+    #         plt.title(f"Gamma={gamma}")
+    #         plt.show()
 
 
     # ==================================================================================
