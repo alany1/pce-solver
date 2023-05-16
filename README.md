@@ -20,11 +20,36 @@ For generating networks, we also use geng and showg from the nauty suite to crea
 ## Usage
 
 ### Creating a Discrete Game
+The `SimpleGame` class is used to represent a discrete game. It is initialized with a list of players and a list of actions for each player. Currently, we assume players have access to the same actions, but this can be easily adapted to the case where players have different action sets. 
 
+To create a new game, first import the `SimpleGame` class:
+```
+from game import SimpleGame
+```
+Then, create a new subclass of `SimpleGame` that creates a pyGambit game object.
+``` 
+class myGame(SimpleGame):
+    def __init__(self, numPlayers, numActions, utilities):
+        super().__init__(numPlayers, numActions, utilities)
+        self.game = self.createGame()
+        self.verbose = verbose
+        
+    def createGame(self):
+        game = gambit.Game.new_table([self.numActions]*self.numPlayers)
+        for profile in itertools.product(range(self.numActions), repeat=self.numPlayers):
+            game[profile][player] = ...
+        return game
+        
+gameWrapper = myGame(...)
+```
 ### Invoking the Solver
+
+Assuming your game wrapper object has been created and you have defined some network ```G```, you can invoke the solver as follows:
+```
+gameWrapper.configureSolver(G, "PULP_CBC_CMD")
+pce = gameWrapper.solve()
+```
 
 
 ## Examples
-
-
-## References
+See `majority.py`, `potluck.py`, and `traffic.py` for examples of a few games and analysis done on them. See the paper for more details on our analysis.
