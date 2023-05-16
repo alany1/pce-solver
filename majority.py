@@ -20,12 +20,20 @@ class SimpleMajorityGame(SimpleGame):
 
     This is the opposite of the traffic game, where players solely care about being in the minority group.
     """
+
     def __init__(self, numPlayers, numActions, verbose=False):
         """
         :param numPlayers: Number of players playing the [numActions] majority game.
         :param numActions: Number of actions available to each player.
         """
-        super().__init__(numPlayers, numActions, [lambda x: SimpleMajorityGame.binaryPreference(i, x) for i in range(numPlayers)])
+        super().__init__(
+            numPlayers,
+            numActions,
+            [
+                lambda x: SimpleMajorityGame.binaryPreference(i, x)
+                for i in range(numPlayers)
+            ],
+        )
         self.game = self.createGame()
         self.verbose = verbose
 
@@ -41,16 +49,19 @@ class SimpleMajorityGame(SimpleGame):
 
         # Iterate through all strategy profiles to set rewards (without using game.contingencies)
         for profile in itertools.product(
-                range(self.numActions), repeat=self.numPlayers
+            range(self.numActions), repeat=self.numPlayers
         ):
             # Assign utility to each player
             for player in range(self.numPlayers):
                 # game[profile][player] = int(
                 #     self.utilities[player](profile)
                 # )
-                game[profile][player] = int(SimpleMajorityGame.binaryPreference(player, profile))
+                game[profile][player] = int(
+                    SimpleMajorityGame.binaryPreference(player, profile)
+                )
 
         return game
+
 
 def analyze(n, gamma, game, early_stop=True):
     """
@@ -79,7 +90,7 @@ def analyze(n, gamma, game, early_stop=True):
     # Split the output into individual edge lists
     edge_lists = edge_list_output.stdout.strip().split("\n\n")
 
-    if gamma != 0 and edge_lists == ['']:
+    if gamma != 0 and edge_lists == [""]:
         print("No graphs found!")
         return None, None
 
@@ -92,15 +103,15 @@ def analyze(n, gamma, game, early_stop=True):
 
     history = []
     for graph in tqdm(
-            all_graphs,
-            desc=f"Solving gamma-complete graphs for n={n}, gamma={gamma}",
+        all_graphs,
+        desc=f"Solving gamma-complete graphs for n={n}, gamma={gamma}",
     ):
         game.configureSolver(
             graph, "PULP_CBC_CMD", writePath=None
         )  # "results/traffic.pkl")
 
         pce = game.solvePCE()
-        count_ones = [sum(x)==n//2 for x in pce]
+        count_ones = [sum(x) == n // 2 for x in pce]
         found = np.argmax(count_ones)
         # smallest = min(pce, key=lambda x: sum(x))
         if any(count_ones):
@@ -110,7 +121,8 @@ def analyze(n, gamma, game, early_stop=True):
             history.append((pce[found], graph))
     if not early_stop:
         return history
-    return None,None
+    return None, None
+
 
 def searchGraphs(n, majorityGame):
     """
@@ -127,19 +139,22 @@ def searchGraphs(n, majorityGame):
     goodGraphs = []
     badGraphs = []
     for graph in tqdm(graphs, desc="Searching graphs", colour="green"):
-    # Check if the graph gives rise to a PCE set containing a profile where n/2 players take each action
-        majorityGame.configureSolver(graph, "PULP_CBC_CMD", writePath="results/Majority.pkl")
+        # Check if the graph gives rise to a PCE set containing a profile where n/2 players take each action
+        majorityGame.configureSolver(
+            graph, "PULP_CBC_CMD", writePath="results/Majority.pkl"
+        )
         pce = majorityGame.solvePCE()
 
         for profile in pce:
             count_ones = sum(profile)
-            if count_ones == n//2 or len(profile)-count_ones == n//2:
+            if count_ones == n // 2 or len(profile) - count_ones == n // 2:
                 goodGraphs.append(graph)
                 print("Found graph with n/2 players taking each action")
                 break
         else:
             badGraphs.append(graph)
     return goodGraphs, badGraphs
+
 
 def simulateRandomGraphs(num_trials, n, p):
     """
@@ -151,19 +166,21 @@ def simulateRandomGraphs(num_trials, n, p):
     badGraphs = []
     for i in tqdm(range(num_trials), desc="Simulating random graphs", colour="green"):
         graph = nx.gnp_random_graph(n, p)
-        majorityGame.configureSolver(graph, "PULP_CBC_CMD", writePath="results/Majority.pkl")
+        majorityGame.configureSolver(
+            graph, "PULP_CBC_CMD", writePath="results/Majority.pkl"
+        )
         pce = majorityGame.solvePCE()
 
         for profile in pce:
             count_ones = sum(profile)
-            if count_ones == n//2 or len(profile)-count_ones == n//2:
+            if count_ones == n // 2 or len(profile) - count_ones == n // 2:
                 goodGraphs.append(graph)
                 print("Found graph with n/2 players taking each action")
                 break
         else:
             badGraphs.append(graph)
 
-    p = len(goodGraphs)/num_trials
+    p = len(goodGraphs) / num_trials
 
     return p, goodGraphs, badGraphs
 
@@ -199,7 +216,6 @@ if __name__ == "__main__":
     #         plt.title(f"Gamma={gamma}")
     #         plt.show()
 
-
     # ==================================================================================
     # import pickle
     #
@@ -226,11 +242,6 @@ if __name__ == "__main__":
     #     plt.show()
 
     # ==================================================================================
-
-
-
-
-
 
     # G = nx.Graph()
     # # G empty
@@ -339,4 +350,3 @@ if __name__ == "__main__":
     # # The pure nash equilibria will just be whenever each player brings a unique dish (N!)
     # nash = solver.solve(majorityGame.game)
     # print("Nash Equilibria: ", nash)
-

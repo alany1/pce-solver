@@ -142,7 +142,7 @@ def parse_edge_list(edge_list):
     if len(lines) < 3:
         return []
 
-    edges_line = '  '.join(lines[2:])
+    edges_line = "  ".join(lines[2:])
     edge_pairs = edges_line.split("  ")  # Split with two spaces
     edges = []
     for edge_pair in edge_pairs:

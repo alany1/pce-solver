@@ -1,7 +1,7 @@
 import networkx as nx
 import random
 
-n = 5
+n = 8
 p = 0.25
 num_trials = 100000
 count = 0

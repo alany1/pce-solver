@@ -31,6 +31,7 @@ class PotluckGame(SimpleGame):
         super().__init__(numPlayers, numPlayers, [u] * numPlayers)
         self.game = PotluckGame.createGame(numPlayers, u)
         self.verbose = verbose
+
     @staticmethod
     def createGame(n, u):
         """
@@ -75,9 +76,9 @@ if __name__ == "__main__":
     # print(nash)
 
     # Generate some graphs and look at the computed PCE
-    print('hey')
-    n=4
-    p=.5
+    print("hey")
+    n = 4
+    p = 0.5
     game = PotluckGame(n, verbose=True)
     for i in range(4):
         print(i)
